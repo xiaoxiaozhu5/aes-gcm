@@ -30,6 +30,9 @@ void test()
 	size_t ptlen = 0;
 	void* dpt2 = NULL;
 	size_t ptlen2 = 0;
+
+	void* encrypted = NULL;
+	size_t encrypted_len = 0;
 	do
 	{
 		int rc = ubiq_platform_algorithm_get_byid(1, &alg);
@@ -59,6 +62,20 @@ void test()
 				std::cout << "finalize failed:" << rc << std::endl;
 				break;
 			}
+			encrypted_len = ctlen + ctlen2;
+			encrypted = calloc(1, encrypted_len);
+			if(!encrypted)
+			{
+				break;
+			}
+			if(ctlen > 0 && ctbuf)
+			{
+				memcpy(encrypted, ctbuf, ctlen);
+			}
+			if(ctlen2 > 0 && ctbuf2)
+			{
+				memcpy((char*)encrypted + ctlen, ctbuf2, ctlen2);
+			}
 		}
 		//decryption
 		{
@@ -69,7 +86,7 @@ void test()
 				std::cout << "init failed:" << rc << std::endl;
 				break;
 			}
-			rc = ubiq_support_decryption_update(ctx, ctbuf2, ctlen2, &dpt, &ptlen);
+			rc = ubiq_support_decryption_update(ctx, encrypted, encrypted_len, &dpt, &ptlen);
 			if (rc != 0)
 			{
 				std::cout << "update failed:" << rc << std::endl;
@@ -81,7 +98,22 @@ void test()
 				std::cout << "finalize failed:" << rc << std::endl;
 				break;
 			}
-			printf("%.*s\n", (int)ptlen2, (char*)dpt2);
+
+			size_t decrypted_len = ptlen + ptlen2;
+			void* decrypted = calloc(1, decrypted_len);
+			if(decrypted)
+			{
+				if(ptlen > 0 && dpt)
+				{
+					memcpy(decrypted, dpt, ptlen);
+				}
+				if(ptlen2 > 0 && dpt2)
+				{
+					memcpy((char*)decrypted + ptlen, dpt2, ptlen2);
+				}
+				printf("%.*s\n", (int)decrypted_len, (char*)decrypted);
+				free(decrypted);
+			}
 		}
 
 	} while (false);
@@ -91,6 +123,8 @@ void test()
 
 	free(dpt);
 	free(dpt2);
+
+	free(encrypted);
 }
 
 int main()
